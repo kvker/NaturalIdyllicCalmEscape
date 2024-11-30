@@ -1,3 +1,5 @@
+![Preview](./public/preview.jpg)
+
 # Nice Community
 
 [Vercel线上地址](https://nice-community.vercel.app/)
