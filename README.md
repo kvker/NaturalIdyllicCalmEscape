@@ -29,6 +29,6 @@
 - utils，工具函数，目前是多语言工具
 - views，视图
 - app.js，入口文件
-- .env，自行填写环境变量，必填项: OPENAI_API_KEY=xxx
+- .env，自行填写环境变量，必填项: OPENAI_API_KEY、LEANCLOUD_APP_ID、LEANCLOUD_APP_KEY、LEANCLOUD_SERVER_URL（中国服务必填）、LEANCLOUD_APP_MASTER_KEY
 
 **由于多语言后面只使用了英文，所以看到很多中文，可以无视。**
