@@ -18,6 +18,7 @@
 - Alpine.js (前端交互)
 - Tailwind CSS (样式框架)
 - LLM Service (内容审核)
+- LeanCloud (后端云服务，ServerLess)
 
 ## 项目结构
 
