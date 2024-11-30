@@ -32,3 +32,9 @@
 - .env，自行填写环境变量，必填项: OPENAI_API_KEY、LEANCLOUD_APP_ID、LEANCLOUD_APP_KEY、LEANCLOUD_SERVER_URL（中国服务必填）、LEANCLOUD_APP_MASTER_KEY
 
 **由于多语言后面只使用了英文，所以看到很多中文，可以无视。**
+
+## LeanCloud说明
+
+自行申请一个免费版的使用即可，LeanCloud的ServerLess服务，可以免费使用。
+
+按照官方文档把相关参数填进去，然后创建两个Class：Post和Comment，就OK了。
