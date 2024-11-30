@@ -1,0 +1,86 @@
+<%- include('components/header', { title: '个人主页' }) %>
+
+<div x-data="profilePage">
+  <%- include('components/header/nav-bar') %>
+
+  <main class="max-w-screen-md mx-auto px-4 pt-20">
+    <!-- 用户信息 -->
+    <div class="card bg-base-100 shadow-xl mb-8">
+      <div class="card-body">
+        <div class="flex items-center gap-4">
+          <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-16">
+              <span class="text-xl" x-text="currentUser?.username?.charAt(0).toUpperCase()"></span>
+            </div>
+          </div>
+          <div>
+            <h2 class="card-title" x-text="currentUser?.username"></h2>
+            <p class="text-base-content/70" x-text="currentUser?.email"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 灵感列表 -->
+    <div class="tabs mb-4">
+      <a class="tab tab-bordered tab-active"><%= t('post.myPosts') %></a>
+    </div>
+
+    <div class="space-y-4" x-show="!isLoadingRef">
+      <template x-for="post in postsRef" :key="post.objectId">
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <p class="text-base-content/70" x-text="post.content"></p>
+            <div class="card-actions justify-between items-center">
+              <div class="flex items-center space-x-2 text-sm text-base-content/60">
+                <span x-text="new Date(post.createdAt).toLocaleDateString()"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 加载状态 -->
+    <div x-show="isLoadingRef" class="flex justify-center py-8">
+      <span class="loading loading-dots loading-lg"></span>
+    </div>
+
+    <!-- 空状态 -->
+    <div x-show="!isLoadingRef && postsRef.length === 0" class="text-center py-8 text-base-content/70">
+      <%= t('post.empty') %>
+    </div>
+  </main>
+</div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('profilePage', () => ({
+      currentUser: null,
+      postsRef: [],
+      isLoadingRef: true,
+
+      init() {
+        this.currentUser = AV.User.current()?.toJSON()
+        this.onLoadPosts()
+      },
+
+      async onLoadPosts() {
+        try {
+          const posts = await LC.Post.onGetList({
+            page: 1,
+            limit: 20,
+            author: AV.User.current()
+          })
+          this.postsRef = posts
+        } catch(error) {
+          console.error('获取灵感列表失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+        } finally {
+          this.isLoadingRef = false
+        }
+      }
+    }))
+  })
+</script>

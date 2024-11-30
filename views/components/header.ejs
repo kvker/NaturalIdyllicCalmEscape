@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> | Natural Idyllic - 田园社</title>
+  <meta name="description"
+    content="Natural Idyllic Calm Escape - A community for sharing positive and uplifting content. 田园社 - 一个专注于分享积极向上内容的社区。">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://nicecommunity.vercel.app/">
+  <meta property="og:title" content="<%= title %> | Natural Idyllic - 田园社">
+  <meta property="og:description"
+    content="Find your inner peace and inspiration in our community. Share your positive stories and spread warmth. 在这里，找寻内心的宁静与激励，分享积极向上的生活故事，传递温暖正能量。">
+  <meta property="og:image" content="images/og-image.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://nicecommunity.vercel.app/">
+  <meta property="twitter:title" content="<%= title %> | Natural Idyllic - 田园社">
+  <meta property="twitter:description"
+    content="Find your inner peace and inspiration in our community. Share your positive stories and spread warmth. 在这里，找寻内心的宁静与激励，分享积极向上的生活故事，传递温暖正能量。">
+  <meta property="twitter:image" content="images/og-image.jpg">
+
+  <!-- LeanCloud SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.2/dist/av-min.js"></script>
+  <script src="/scripts/leancloud.js"></script>
+  <script src="/scripts/leancloud-error.js"></script>
+  <script src="/scripts/request.js"></script>
+
+  <script src="https://unpkg.com/alpinejs" defer></script>
+
+  <!-- 预加载关键资源 -->
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://dpmuezlt.api.lncldglobal.com">
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+
+<body>
+  <div id="toast" class="toast toast-end z-[9999]">
+    <!-- toast 内容会动态插入这里 -->
+  </div>
+
+  <script>
+    // toast 工具
+    window.$toast = {
+      show(message, type = 'info') {
+        const toast = document.getElementById('toast')
+        const alert = document.createElement('div')
+        alert.className = `alert alert-${type} max-w-[320px] whitespace-pre-wrap break-words`
+        alert.textContent = message
+        toast.appendChild(alert)
+
+        setTimeout(() => {
+          alert.remove()
+        }, 3000)
+      },
+      success(message) {
+        this.show(message, 'success')
+      },
+      error(message) {
+        this.show(message, 'error')
+      },
+      info(message) {
+        this.show(message, 'info')
+      }
+    }
+  </script>

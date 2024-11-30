@@ -1,0 +1,257 @@
+<%- include('components/header') %>
+
+<div x-data="mainPage" class="h-full scroll-smooth overflow-y-auto">
+  <%- include('components/header/nav-bar') %>
+
+  <main class="max-w-screen-md mx-auto px-4 py-20">
+    <!-- 页面标题 -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-2">
+        <%= t('site.fullName') %>
+      </h1>
+      <p class="text-base-content/70">
+        <%= t('site.description') %>
+      </p>
+    </div>
+
+    <!-- 下拉刷新提示 -->
+    <div x-show="isRefreshingRef" class="flex justify-center py-4">
+      <span class="loading loading-dots loading-lg"></span>
+    </div>
+
+    <!-- 帖子列表 -->
+    <div class="space-y-4">
+      <template x-for="post in postsRef" :key="post.objectId">
+        <div class="card bg-base-100 shadow-xl">
+          <div class="card-body">
+            <p class="text-base-content/70" x-text="post.content"></p>
+            <!-- 图片网格 -->
+            <template x-if="post.images?.length > 0">
+              <div class="flex">
+                <template x-for="(image, index) in post.images" :key="index">
+                  <div class="w-20 h-20 mr-4 aspect-square overflow-hidden rounded cursor-zoom-in">
+                    <img :src="image.url" :alt="`图片 ${index + 1}`"
+                      class="w-full h-full object-cover hover:scale-105 transition-transform"
+                      @click="onPreviewImage(post.images, index)">
+                  </div>
+                </template>
+              </div>
+            </template>
+            <div class="card-actions justify-between items-center mt-4">
+              <div class="flex items-center space-x-2 text-sm text-base-content/60">
+                <span x-text="new Date(post.createdAt).toLocaleDateString()"></span>
+                <span x-text="post.author.username"></span>
+              </div>
+              <button class="btn btn-ghost btn-sm gap-2" @click="onOpenComments(post)">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                <span x-text="post.commentCount || 0"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <!-- 加载更多 -->
+    <div x-show="hasMoreRef && !isLoadingRef" class="flex justify-center py-8">
+      <button @click="onLoadMore" class="btn btn-outline" :disabled="isLoadingMoreRef">
+        <span x-show="isLoadingMoreRef" class="loading loading-spinner"></span>
+        加载更多
+      </button>
+    </div>
+
+    <!-- 加载中 -->
+    <div x-show="isLoadingRef" class="flex justify-center py-8">
+      <span class="loading loading-dots loading-lg"></span>
+    </div>
+  </main>
+
+  <button @click="onOpenNewPost" class="btn btn-circle btn-lg btn-primary fixed right-8 bottom-8 shadow-lg"
+    aria-label="发布新想法">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+  </button>
+
+  <!-- 图片预览模态框 -->
+  <div x-show="isPreviewingRef" class="modal modal-open" @click="onClosePreview">
+    <div class="modal-box max-w-5xl p-0 bg-transparent shadow-none" @click.stop>
+      <div class="relative">
+        <!-- 关闭按钮 -->
+        <button class="btn btn-circle btn-sm absolute top-2 right-2 bg-base-100" @click="onClosePreview">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <img :src="currentImageRef" class="max-w-full max-h-[80vh] object-contain mx-auto">
+        <!-- 导航按钮 -->
+        <template x-if="previewImagesRef.length > 1">
+          <div>
+            <button class="btn btn-circle btn-ghost absolute left-4 top-1/2 -translate-y-1/2" @click="onPrevImage"
+              x-show="currentIndexRef > 0">❮</button>
+            <button class="btn btn-circle btn-ghost absolute right-4 top-1/2 -translate-y-1/2" @click="onNextImage"
+              x-show="currentIndexRef < previewImagesRef.length - 1">❯</button>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <%- include('components/post/create-post') %>
+  <%- include('components/post/create-comment') %>
+
+</div>
+<div id="paypal-buttons"></div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('mainPage', () => ({
+      postsRef: [],
+      pageRef: 1,
+      hasMoreRef: true,
+      isLoadingRef: true,
+      isLoadingMoreRef: false,
+      isRefreshingRef: false,
+      isPreviewingRef: false,
+      currentImageRef: '',
+      currentIndexRef: 0,
+      previewImagesRef: [],
+      startY: 0,
+
+      init() {
+        this.onLoadPosts()
+        this.initPullToRefresh()
+      },
+
+      initPullToRefresh() {
+        document.addEventListener('touchstart', (e) => {
+          this.startY = e.touches[0].pageY
+        })
+
+        document.addEventListener('touchmove', (e) => {
+          const y = e.touches[0].pageY
+          const scrollTop = window.scrollY
+
+          // 只有在顶部才能下拉刷新
+          if(scrollTop === 0 && y - this.startY > 100) {
+            this.onRefresh()
+          }
+        })
+      },
+
+      onPreviewImage(images, index) {
+        this.previewImagesRef = images
+        this.currentIndexRef = index
+        this.currentImageRef = images[index].url
+        this.isPreviewingRef = true
+      },
+
+      onClosePreview() {
+        this.isPreviewingRef = false
+        this.previewImagesRef = []
+        this.currentImageRef = ''
+      },
+
+      onPrevImage() {
+        if(this.currentIndexRef > 0) {
+          this.currentIndexRef--
+          this.currentImageRef = this.previewImagesRef[this.currentIndexRef].url
+        }
+      },
+
+      onNextImage() {
+        if(this.currentIndexRef < this.previewImagesRef.length - 1) {
+          this.currentIndexRef++
+          this.currentImageRef = this.previewImagesRef[this.currentIndexRef].url
+        }
+      },
+
+      async onRefresh() {
+        if(this.isRefreshingRef) return
+
+        this.isRefreshingRef = true
+        this.pageRef = 1
+        this.hasMoreRef = true
+
+        try {
+          const posts = await LC.Post.onGetList({ page: 1, limit: 10 })
+          this.postsRef = posts
+        } catch(error) {
+          console.error('刷新失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+        } finally {
+          this.isRefreshingRef = false
+        }
+      },
+
+      async onLoadPosts() {
+        try {
+          const posts = await LC.Post.onGetList({ page: this.pageRef, limit: 10 })
+          this.postsRef = posts
+          this.hasMoreRef = posts.length === 10
+        } catch(error) {
+          console.error('获取帖子列表失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+        } finally {
+          this.isLoadingRef = false
+        }
+      },
+
+      async onLoadMore() {
+        if(this.isLoadingMoreRef || !this.hasMoreRef) return
+
+        this.isLoadingMoreRef = true
+        this.pageRef++
+
+        try {
+          const posts = await LC.Post.onGetList({ page: this.pageRef, limit: 10 })
+          this.postsRef = [...this.postsRef, ...posts]
+          this.hasMoreRef = posts.length === 10
+        } catch(error) {
+          console.error('加载更多失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+          this.pageRef--
+        } finally {
+          this.isLoadingMoreRef = false
+        }
+      },
+
+      onOpenNewPost() {
+        const createPost = Alpine.$data(document.querySelector('[x-data="createPost"]'))
+        createPost.isShowingRef = true
+      },
+
+      // 添加评论相关方法
+      async onOpenComments(post) {
+        const createComment = Alpine.$data(document.querySelector('[x-data="createComment"]'))
+        createComment.postId = post.objectId
+        createComment.isShowingRef = true
+      },
+
+      async onRefreshComments(postId) {
+        try {
+          const comments = await LC.Comment.onGetList({ postId })
+          // 更新帖子的评论数
+          const post = this.postsRef.find(p => p.objectId === postId)
+          if(post) {
+            post.commentCount = comments.length
+          }
+        } catch(error) {
+          console.error('刷新评论失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+        }
+      },
+    }))
+  })
+</script>
+
+<%- include('components/footer') %>

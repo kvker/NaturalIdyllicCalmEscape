@@ -1,0 +1,78 @@
+<div x-data="navBar" class="navbar bg-base-100 fixed top-0 left-0 right-0 z-50 border-b border-base-200">
+  <div class="navbar-start">
+    <a href="/" class="btn btn-ghost text-xl text-primary" aria-label="Natural Idyllic - 田园社">
+      <%= t('site.name') %>
+    </a>
+  </div>
+
+  <div class="navbar-center hidden lg:flex">
+    <h1 class="text-xl text-base-content/70"><%= t('site.hope') %></h1>
+  </div>
+
+  <div class="navbar-end">
+    <div class="dropdown dropdown-end mr-2">
+      <!-- <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+        <%= locale.toUpperCase() %>
+      </div>
+      <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-20">
+        <li><a href="?lang=en" class="<%= locale === 'en' ? 'active' : '' %>">EN</a></li>
+        <li><a href="?lang=zh" class="<%= locale === 'zh' ? 'active' : '' %>">中文</a></li>
+      </ul> -->
+    </div>
+    <template x-if="currentUser">
+      <div class="dropdown dropdown-end">
+        <div tabindex="0" role="button" class="btn btn-ghost">
+          <span class="hidden md:inline-block" x-text="currentUser.username"></span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+          <li><a href="/profile">个人主页</a></li>
+          <li><a href="/settings">设置</a></li>
+          <li>
+            <button @click="onLogout" class="text-left text-error">退出登录</button>
+          </li>
+        </ul>
+      </div>
+    </template>
+    <template x-if="!currentUser">
+      <a href="/login" class="btn btn-primary">登录</a>
+    </template>
+  </div>
+</div>
+
+<%- include('../common/confirm-modal') %>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('navBar', () => ({
+      currentUser: null,
+
+      init() {
+        this.currentUser = AV.User.current()?.toJSON()
+      },
+
+      async onLogout() {
+        const confirmModal = Alpine.$data(document.querySelector('[x-data="confirmModal"]'))
+
+        confirmModal.onShow({
+          title: '退出登录',
+          message: '确定要退出登录吗？',
+          type: 'danger',
+          onConfirm: async () => {
+            try {
+              await AV.User.logOut()
+              window.location.href = '/login'
+            } catch(error) {
+              console.error('退出登录失败:', error)
+              const message = await LCError.onGetMessage({ error })
+              window.$toast.error(message)
+            }
+          }
+        })
+      }
+    }))
+  })
+</script>

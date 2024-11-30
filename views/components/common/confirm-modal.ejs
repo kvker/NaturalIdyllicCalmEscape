@@ -1,0 +1,58 @@
+<div
+  x-data="confirmModal"
+  x-show="isShowingRef"
+  class="modal modal-open"
+  x-transition
+  @keydown.escape.window="onClose"
+  x-cloak
+>
+  <div class="modal-box">
+    <h3 class="font-bold text-lg" x-text="titleRef"></h3>
+    <p class="py-4" x-text="messageRef"></p>
+    <div class="modal-action">
+      <button @click="onClose" class="btn">取消</button>
+      <button
+        @click="onConfirm"
+        class="btn"
+        :class="typeRef === 'danger' ? 'btn-error' : 'btn-primary'"
+      >
+        确认
+      </button>
+    </div>
+  </div>
+  <div class="modal-backdrop" @click="onClose">
+    <button class="sr-only">关闭</button>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('confirmModal', () => ({
+    isShowingRef: false,
+    titleRef: '',
+    messageRef: '',
+    typeRef: 'primary',
+    onConfirmCallback: null,
+
+    onShow({ title, message, type = 'primary', onConfirm }) {
+      this.titleRef = title
+      this.messageRef = message
+      this.typeRef = type
+      this.onConfirmCallback = onConfirm
+      this.isShowingRef = true
+    },
+
+    onClose() {
+      this.isShowingRef = false
+      this.onConfirmCallback = null
+    },
+
+    async onConfirm() {
+      if (this.onConfirmCallback) {
+        await this.onConfirmCallback()
+      }
+      this.onClose()
+    }
+  }))
+})
+</script>

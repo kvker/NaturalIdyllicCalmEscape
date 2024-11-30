@@ -1,0 +1,147 @@
+<div x-data="createComment" x-show="isShowingRef" class="modal modal-open" x-transition @keydown.escape.window="onClose"
+  x-cloak>
+  <div class="modal-box max-w-2xl">
+    <h3 class="font-bold text-lg"><%= t('comment.create') %></h3>
+
+    <!-- 评论列表 -->
+    <div class="py-4 max-h-[40vh] overflow-y-auto">
+      <!-- 加载中状态 -->
+      <div x-show="isLoadingRef" class="flex justify-center py-4">
+        <span class="loading loading-dots loading-lg"></span>
+      </div>
+
+      <!-- 评论列表 -->
+      <div class="space-y-4" x-ref="commentsInputRef" x-show="!isLoadingRef">
+        <template x-if="commentsRef.length === 0">
+          <div class="text-center text-base-content/60 py-4">
+            <%= t('comment.empty') %>
+          </div>
+        </template>
+
+        <template x-for="comment in commentsRef" :key="comment.objectId">
+          <div class="bg-base-200 rounded-lg p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="avatar placeholder">
+                <div class="bg-neutral text-neutral-content rounded-full w-8">
+                  <span class="text-xs" x-text="comment.author.username.charAt(0).toUpperCase()"></span>
+                </div>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-sm font-medium" x-text="comment.author.username"></span>
+                <span class="text-xs text-base-content/60" x-text="new Date(comment.createdAt).toLocaleString()"></span>
+              </div>
+            </div>
+            <p class="text-sm text-base-content/80" x-text="comment.content"></p>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div class="divider"></div>
+
+    <!-- 评论输入框 -->
+    <div class="py-4">
+      <textarea x-model="contentRef" @input="onInputContent" x-ref="textarea"
+        class="textarea textarea-bordered w-full h-32 resize-none" placeholder="<%= t('comment.placeholder') %>"
+        maxlength="200"></textarea>
+      <div class="text-right text-sm text-base-content/60">
+        <span x-text="contentRef.length"></span>/200
+      </div>
+    </div>
+
+    <div class="modal-action">
+      <div class="text-xs text-gray-500 mb-2">
+        <%= t('comment.warning') %>
+      </div>
+      <button @click="onClose" class="btn"><%= t('comment.cancel') %></button>
+      <button @click="onSubmit" :disabled="!isValidRef || isSubmitting" class="btn btn-primary">
+        <span x-show="isSubmitting" class="loading loading-spinner"></span>
+        <span x-show="!isSubmitting"><%= t('comment.submit') %></span>
+      </button>
+    </div>
+  </div>
+  <div class="modal-backdrop" @click="onClose">
+    <button class="sr-only"><%= t('comment.close') %></button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('createComment', () => ({
+      isShowingRef: false,
+      contentRef: '',
+      isValidRef: false,
+      isSubmitting: false,
+      isLoadingRef: true,
+      commentsRef: [],
+      commentsInputRef: null,
+      postId: null,
+
+      init() {
+        this.$watch('isShowingRef', async value => {
+          if(value) {
+            setTimeout(() => {
+              this.$refs.textarea.focus()
+            }, 100)
+            // 加载评论列表
+            await this.onLoadComments()
+          }
+        })
+      },
+
+      async onLoadComments() {
+        if(!this.postId) return
+
+        this.isLoadingRef = true
+        try {
+          this.commentsRef = await LC.Comment.onGetList({ postId: this.postId })
+        } catch(error) {
+          console.error('加载评论失败:', error)
+          const message = await LCError.onGetMessage({ error })
+          window.$toast.error(message)
+        } finally {
+          this.isLoadingRef = false
+        }
+      },
+
+      onClose() {
+        this.isShowingRef = false
+        this.contentRef = ''
+        this.postId = null
+        this.commentsRef = []
+      },
+
+      onInputContent() {
+        this.isValidRef = this.contentRef.trim().length > 0
+      },
+
+      async onSubmit() {
+        if(!this.isValidRef) return
+
+        this.isSubmitting = true
+        try {
+          await Request.Comment.onCreate({
+            content: this.contentRef,
+            postId: this.postId
+          })
+          window.$toast.success('Reply submitted successfully')
+          this.contentRef = ''
+          // 刷新评论列表
+          await this.onLoadComments()
+          // 刷新帖子的评论数
+          const mainPage = Alpine.$data(document.querySelector('[x-data="mainPage"]'))
+          await mainPage.onRefreshComments(this.postId)
+          this.$nextTick(() => {
+            this.$refs.commentsInputRef.lastElementChild.scrollIntoView({ behavior: 'smooth' })
+          })
+        } catch(error) {
+          console.error('回复失败:', error)
+          window.$toast.error(error.message)
+        } finally {
+          this.isSubmitting = false
+        }
+      }
+    }))
+  })
+</script>

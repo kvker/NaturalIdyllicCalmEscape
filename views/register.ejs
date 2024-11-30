@@ -1,0 +1,89 @@
+<%- include('components/header', { title: '注册 - Natural Idyllic' }) %>
+
+<div class="min-h-screen flex items-center justify-center">
+  <div class="card w-96 bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title justify-center text-2xl font-bold mb-6">创建账号</h2>
+
+      <form x-data="registerForm" @submit.prevent="onSubmit">
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text">用户名</span>
+          </label>
+          <input type="text" x-model="username" class="input input-bordered w-full" required />
+        </div>
+
+        <div class="form-control w-full mt-4">
+          <label class="label">
+            <span class="label-text">邮箱</span>
+          </label>
+          <input type="email" x-model="email" class="input input-bordered w-full" required />
+        </div>
+
+        <div class="form-control w-full mt-4">
+          <label class="label">
+            <span class="label-text">密码</span>
+          </label>
+          <input type="password" x-model="password" class="input input-bordered w-full" required minlength="8" />
+          <label class="label">
+            <span class="label-text-alt">至少8个字符</span>
+          </label>
+        </div>
+
+        <div class="card-actions mt-6">
+          <button type="submit" class="btn btn-primary w-full" :disabled="isSubmitting">
+            <span x-show="isSubmitting" class="loading loading-spinner"></span>
+            注册
+          </button>
+        </div>
+      </form>
+
+      <div class="divider">或者</div>
+
+      <a href="/login" class="btn btn-outline w-full">
+        返回登录
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('registerForm', () => ({
+    username: '',
+    email: '',
+    password: '',
+    isSubmitting: false,
+
+    async onSubmit() {
+      this.isSubmitting = true
+      try {
+        // 创建 LeanCloud 用户
+        const user = new AV.User()
+        user.setUsername(this.username)
+        user.setPassword(this.password)
+        user.setEmail(this.email)
+
+        await user.signUp()
+
+        // 发送验证邮件
+        await AV.User.requestEmailVerify(this.email)
+
+        // 注册成功,显示提示
+        window.$toast.success('注册成功！请查收验证邮件完成账号创建')
+
+        // 跳转到登录页
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 2000)
+      } catch(error) {
+        console.error('注册失败:', error)
+        const message = await LCError.onGetMessage({ error })
+        window.$toast.error(message)
+      } finally {
+        this.isSubmitting = false
+      }
+    }
+  }))
+})
+</script>

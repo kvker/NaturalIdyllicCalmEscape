@@ -1,0 +1,74 @@
+<%- include('components/header', { title: '登录 - Natural Idyllic' }) %>
+
+<div class="min-h-screen flex items-center justify-center">
+  <div class="card w-96 bg-base-100 shadow-xl">
+    <div class="card-body">
+      <h2 class="card-title justify-center text-2xl font-bold mb-6">登录</h2>
+
+      <form x-data="loginForm" @submit.prevent="onSubmit">
+        <div class="form-control w-full">
+          <label class="label">
+            <span class="label-text">邮箱</span>
+          </label>
+          <input type="email" x-model="email" class="input input-bordered w-full" required />
+        </div>
+
+        <div class="form-control w-full mt-4">
+          <label class="label">
+            <span class="label-text">密码</span>
+            <a href="/forgot-password" class="link link-primary text-sm hover:link-hover">忘记密码？</a>
+          </label>
+          <input type="password" x-model="password" class="input input-bordered w-full" required />
+        </div>
+
+        <div class="card-actions mt-6">
+          <button type="submit" class="btn btn-primary w-full" :disabled="isSubmitting">
+            <span x-show="isSubmitting" class="loading loading-spinner"></span>
+            登录
+          </button>
+        </div>
+      </form>
+
+      <div class="divider">或者</div>
+
+      <a href="/register" class="btn btn-outline w-full">
+        创建新账号
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('loginForm', () => ({
+    email: '',
+    password: '',
+    isSubmitting: false,
+
+    async onSubmit() {
+      this.isSubmitting = true
+      try {
+        // 使用 LeanCloud 登录
+        const user = await AV.User.loginWithEmail(this.email, this.password)
+
+        // 检查邮箱是否已验证
+        if (!user.get('emailVerified')) {
+          // 重新发送验证邮件
+          await AV.User.requestEmailVerify(this.email)
+          window.$toast.error('请先验证邮箱后再登录。已重新发送验证邮件，请查收。')
+          return
+        }
+
+        // 登录成功,跳转到首页
+        window.location.href = '/'
+      } catch (error) {
+        console.error('登录失败:', error)
+        const message = await LCError.onGetMessage({ error })
+        window.$toast.error(message)
+      } finally {
+        this.isSubmitting = false
+      }
+    }
+  }))
+})
+</script>

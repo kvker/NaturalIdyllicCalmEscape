@@ -1,0 +1,184 @@
+<div x-data="createPost" x-show="isShowingRef" class="modal modal-open" x-transition @keydown.escape.window="onClose"
+  x-cloak>
+  <div class="modal-box">
+    <h: clas,="font,bold text.lg"><%= t('post.create') %></h3>
+      <div class="py-4">
+        <textarea x-model="contentRef" @input="onInputContent" x-ref="textarea"
+          class="textarea textarea-bordered w-full h-32 resize-none" placeholder="<%= t('post.placeholder') %>"
+          maxlength="200"></textarea>
+        <div class="text-right text-sm text-base-content/60">
+          <span x-text="contentRef.length"></span>/200
+        </div>
+
+        <!-- 图片上传区域 -->
+        <!-- <div class="mt-4">
+          <div class="flex flex-wrap gap-2">
+            <template x-for="(img, index) in imagesRef" :key="index">
+              <div class="relative w-24 h-24">
+                <img :src="img.url" class="w-full h-full object-cover rounded">
+                <button @click="onRemoveImage(index)"
+                  class="absolute -top-2 -right-2 btn btn-circle btn-xs btn-error">×</button>
+              </div>
+            </template>
+
+            <template x-if="imagesRef.length < 3">
+              <div class="w-24 h-24 border-2 border-dashed rounded flex items-center justify-center cursor-pointer"
+                @click="onSelectImage">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+            </template>
+          </div>
+          <input type="file" x-ref="fileInput" class="hidden" accept="image/*" @change="onImageSelected" multiple>
+        </div> -->
+      </div>
+      <div class="modal-action">
+        <div class="text-xs text-gray-500 mb-2">
+          <%= t('post.warning') %>
+        </div>
+        <button @click="onClose" class="btn"><%= t('post.cancel') %></button>
+        <button @click="onSubmit" :disabled="!isValidRef || isSubmitting" class="btn btn-primary">
+          <span x-show="isSubmitting"><%= t('post.submitting') %></span>
+          <span x-show="!isSubmitting"><%= t('post.submit') %></span>
+        </button>
+      </div>
+  </div>
+  <div class="modal-backdrop" @click="onClose">
+    <button class="sr-only"><%= t('post.close') %></button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('createPost', () => ({
+      isShowingRef: false,
+      contentRef: '',
+      isValidRef: false,
+      // imagesRef: [],
+      isSubmitting: false,
+
+      init() {
+        this.$watch('isShowingRef', value => {
+          if(value) {
+            setTimeout(() => {
+              this.$refs.textarea.focus()
+            }, 100)
+          }
+        })
+      },
+
+      onClose() {
+        this.isShowingRef = false
+        this.contentRef = ''
+        // this.imagesRef = []
+      },
+
+      onInputContent() {
+        this.isValidRef = this.contentRef.trim().length > 0
+      },
+
+      onSelectImage() {
+        this.$refs.fileInput.click()
+      },
+
+      async onCompressImage(file) {
+        return new Promise((resolve) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = (e) => {
+            const img = new Image()
+            img.src = e.target.result
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              const ctx = canvas.getContext('2d')
+              let width = img.width
+              let height = img.height
+
+              // 保持宽高比进行压缩
+              if(file.size > 2 * 1024 * 1024) { // 如果大于2MB
+                const ratio = Math.sqrt(2 * 1024 * 1024 / file.size)
+                width *= ratio
+                height *= ratio
+              }
+
+              canvas.width = width
+              canvas.height = height
+              ctx.drawImage(img, 0, 0, width, height)
+
+              canvas.toBlob((blob) => {
+                resolve(new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                }))
+              }, 'image/jpeg', 0.8)
+            }
+          }
+        })
+      },
+
+      // async onImageSelected(event) {
+      //   const files = Array.from(event.target.files)
+      //   const remainingSlots = 3 - this.imagesRef.length
+
+      //   if(files.length > remainingSlots) {
+      //     window.$toast.error(`最多只能上传${remainingSlots}张图片`)
+      //     return
+      //   }
+
+      //   for(const file of files) {
+      //     try {
+      //       const compressedFile = await this.onCompressImage(file)
+      //       const url = URL.createObjectURL(compressedFile)
+      //       this.imagesRef.push({
+      //         file: compressedFile,
+      //         url
+      //       })
+      //     } catch(error) {
+      //       console.error('图片处理失败:', error)
+      //       window.$toast.error('图片处理失败')
+      //     }
+      //   }
+
+      //   event.target.value = '' // 清空input以允许重复选择相同文件
+      // },
+
+      // onRemoveImage(index) {
+      //   URL.revokeObjectURL(this.imagesRef[index].url)
+      //   this.imagesRef.splice(index, 1)
+      // },
+
+      async onSubmit() {
+        if(!this.isValidRef) return
+
+        this.isSubmitting = true;
+        try {
+          // 先上传图片
+          // const imageFiles = await Promise.all(
+          //   this.imagesRef.map(async img => {
+          //     const file = new AV.File(img.file.name, img.file)
+          //     return await file.save()
+          //   })
+          // )
+
+          // 调用后端 API 创建帖子
+          const ret = await Request.Post.onCreate({
+            content: this.contentRef,
+            // images: imageFiles
+          })
+
+          window.$toast.success('发布成功')
+          this.onClose()
+          // 刷新列表
+          const mainPage = Alpine.$data(document.querySelector('[x-data="mainPage"]'))
+          await mainPage.onRefresh()
+        } catch(error) {
+          console.error('发布失败:', error)
+          window.$toast.error(error.message)
+        }
+        this.isSubmitting = false;
+      }
+    }))
+  })
+</script>
