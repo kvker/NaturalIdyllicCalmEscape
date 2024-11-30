@@ -1,5 +1,7 @@
 # Nice Community
 
+[Vercel线上地址](https://nice-community.vercel.app/)
+
 一个专注于分享积极向上内容的社交平台。
 
 非常适合前端转全栈以及AIGC入手学习。
@@ -38,3 +40,11 @@
 自行申请一个免费版的使用即可，LeanCloud的ServerLess服务，可以免费使用。
 
 按照官方文档把相关参数填进去，然后创建两个Class：Post和Comment，就OK了。
+
+## 部署说明
+
+本地启动`npm run dev`。
+
+如果自己有服务器，则`node app.js`即可。
+
+如果使用Vercel，则`vercel`或`vercel --prod`，看部署到测试还是线上了。另外，Vercel需要将.env的变量填入环境变量中。
