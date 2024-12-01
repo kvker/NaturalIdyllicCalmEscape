@@ -17,7 +17,7 @@
 
 ## 技术栈
 
-- Express + TypeScript (后端框架)
+- Express(后端框架)
 - EJS (服务端渲染)
 - Alpine.js (前端交互)
 - Tailwind CSS (样式框架)
