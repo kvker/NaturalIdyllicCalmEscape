@@ -1,6 +1,6 @@
 ![Preview](./public/preview.jpg)
 
-[中文文档](./CN-Docs.md)
+[中文文档](./README-cn.md)
 
 # Nice Community
 
