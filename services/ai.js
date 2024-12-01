@@ -8,8 +8,8 @@ let openaiConfig = {
 
 if (global.isDev) {
   openaiConfig = {
-    apiKey: 'sk-7m5Lcl4oNkS5sDOPBe96BcD73469404c85DcFb9c0a0b4e7e',
-    baseURL: 'https://gitaigc.com/v1'
+    apiKey: process.env.OPENAI_API_KEY_PROXY,
+    baseURL: process.env.OPENAI_BASE_URL_PROXY
   }
 }
 
